@@ -1,0 +1,3 @@
+[submodule "gsl-fork"]
+	path = gsl-fork
+	url = git@github.com:Antigen-1/gsl-fork.git
