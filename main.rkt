@@ -53,13 +53,16 @@
   (define history-list (cond ((unbox history) (file->value (unbox history)))
                              (else null)))
 
-  (contract history-list (listof string?) (unbox history) 'expeditor)
+  (void (contract (listof string?) history-list (unbox history) 'expeditor))
   
   ;;The main REPL
   (parameterize ((current-expeditor-history history-list))
     (call-with-expeditor
      (lambda (read)
-       (let loop ()
-         (print (eval (read) (module->namespace "namespace.rkt" (namespace-anchor->namespace anchor))))
-         (loop))))
-    (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))
+       (let/cc break
+         (let loop ()
+           (define read-result (read))
+           (define eval-result (if (eof-object? read-result) (break) (eval read-result (module->namespace "namespace.rkt" (namespace-anchor->namespace anchor)))))
+           (println eval-result)
+           (loop)))))
+    (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))
