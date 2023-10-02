@@ -68,19 +68,17 @@
         (expeditor-bind-key! "^C" ee-reset-entry)
         ;;Save output ports
         (define $output (current-output-port))
-        (define $error (current-error-port))
         ;;Start the REPL
         (call-with-expeditor
          (lambda (read)
            (let/cc break
-             (define (loop . _)
+             (let loop ()
                ;;The REPL will not abort when something is raised.
                (call-with-continuation-prompt
                 (lambda ()
                   (define read-result (read))
                   (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result namespace)))
                   (println eval-result $output))
-                (default-continuation-prompt-tag)
-                loop))
-             (loop)))))
+                (default-continuation-prompt-tag))
+               (loop))))))
       (lambda () (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))))
