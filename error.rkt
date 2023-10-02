@@ -4,7 +4,7 @@
 
 (struct exn:fail:gsl exn:fail ())
 
-(define gsl_error_handler_t_p (_cpointer 'gsl_error_handler_t))
+(define gsl_error_handler_t_p (_cpointer/null 'gsl_error_handler_t))
 
 ;;Turn off and then return the default error handler
 (define-libgsl gsl_set_error_handler_off (_fun -> gsl_error_handler_t_p))
