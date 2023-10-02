@@ -15,9 +15,10 @@
 
 ;;Block readers and writers are not bound here because `FILE` structures are used in these functions
 
-(module+ block-test
+(module* block-test racket/base
+  (require (only-in (submod "..") gsl:alloc-block gsl:calloc-block gsl_block) racket/match)
   (require rackunit)
 
-  (define b1 (gsl:alloc-block 100))
+  (define b1 (gsl:calloc-block 100))
   (define b2 (gsl:alloc-block 100))
-  (check-true (= 100 (gsl_block-size b1) (gsl_block-size b2))))
+  (check-true (match* (b1 b2) (((gsl_block size1 _) (gsl_block size2 _)) (= 100 size1 size2)))))
