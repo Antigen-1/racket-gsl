@@ -71,14 +71,17 @@
         ;;Start the REPL
         (call-with-expeditor
          (lambda (read)
-           (let/cc break
-             (let loop ()
-               ;;The REPL will not abort when something is raised.
-               (call-with-continuation-prompt
-                (lambda ()
-                  (define read-result (read))
-                  (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result namespace)))
-                  (println eval-result $output))
-                (default-continuation-prompt-tag))
-               (loop))))))
+           (define new-tag (make-continuation-prompt-tag))
+           (call/cc
+            (lambda (break)
+              (let loop ()
+                ;;The REPL will not abort when something is raised.
+                (call-with-continuation-prompt
+                 (lambda ()
+                   (define read-result (read))
+                   (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result namespace)))
+                   (println eval-result $output))
+                 (default-continuation-prompt-tag))
+                (loop)))
+            new-tag))))
       (lambda () (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))))
