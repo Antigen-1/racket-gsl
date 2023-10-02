@@ -25,9 +25,6 @@
 
 ;; Code here
 
-(require racket/runtime-path)
-(define-runtime-module-path-index namespace-module "namespace.rkt")
-
 (module+ test
   ;; Any code in this `test` submodule runs when this file is run using DrRacket
   ;; or with `raco test`. The code here does not run when this file is
@@ -43,7 +40,7 @@
   ;; does not run when this file is required by another module. Documentation:
   ;; http://docs.racket-lang.org/guide/Module_Syntax.html#%28part._main-and-test%29
 
-  (require racket/cmdline racket/file racket/contract racket/exn
+  (require racket/cmdline racket/file racket/contract
            raco/command-name
            (submod expeditor configure) expeditor
            "namespace.rkt")
@@ -55,8 +52,6 @@
     #:once-each
     [("--history") location "Read and update the history" (set-box! history location)])
 
-  (define-namespace-anchor anchor)
-  (define namespace (module->namespace namespace-module (namespace-anchor->namespace anchor)))
   (define history-list (cond ((unbox history) (file->value (unbox history))) (else null)))
 
   (void (contract (listof string?) history-list (unbox history) 'expeditor))
@@ -83,7 +78,7 @@
                    (call-with-continuation-prompt
                     (lambda ()
                       (define read-result (read))
-                      (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result namespace)))
+                      (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result eval-namespace)))
                       (println eval-result $output))
                     (default-continuation-prompt-tag)
                     void)

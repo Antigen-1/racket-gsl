@@ -1,10 +1,13 @@
-#lang racket
-(require "library.rkt" "error.rkt" "block.rkt" "vector.rkt")
-(provide (all-from-out racket)
-         define-libgsl define-libgslcblas
-         check/raise-code
-         (struct-out gsl_block) _gsl_block-pointer _gsl_block-pointer/null gsl:alloc-block gsl:calloc-block
-         (struct-out gsl_vector) _gsl_vector-pointer _gsl_vector-pointer/null gsl:alloc-vector gsl:calloc-vector gsl:vector-ptr gsl:vector-ref gsl:vector-set! gsl:vector-set-all! gsl:vector-set-basis! gsl:vector-set-zero!)
+#lang racket/base
+(module namespace-submodule racket
+  (require ffi/unsafe "library.rkt" "error.rkt" "block.rkt" "vector.rkt")
+  (provide (all-from-out racket ffi/unsafe "block.rkt" "vector.rkt")
+           define-libgsl define-libgslcblas
+           check/raise-code))
 
-;;Configuration
-(void (gsl:turn-off-error-handler))
+;;Create and export a new namespace corresponding to `namespace-submodule`
+(require 'namespace-submodule racket/runtime-path)
+(define-namespace-anchor anchor)
+(define-runtime-module-path-index namespace-submodule 'namespace-submodule)
+(define eval-namespace (module->namespace namespace-submodule (namespace-anchor->empty-namespace anchor)))
+(provide eval-namespace)
