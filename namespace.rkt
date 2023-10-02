@@ -1,6 +1,6 @@
-#lang racket/base
+#lang racket
 (require "error.rkt")
-(provide (all-from-out racket/base))
+(provide (all-from-out racket))
 
 ;;Configuration
 (void (gsl:turn-off-error-handler))
