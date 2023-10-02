@@ -1,6 +1,7 @@
 #lang racket/base
 (require ffi/unsafe ffi/unsafe/alloc "library.rkt")
-(provide (struct-out gsl_block) gsl:alloc-block gsl:calloc-block)
+(provide (struct-out gsl_block) _gsl_block-pointer _gsl_block-pointer/null
+         gsl:alloc-block gsl:calloc-block)
 
 ;;The C structure
 (define-cstruct _gsl_block ((size _size) (data _pointer)))

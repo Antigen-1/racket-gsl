@@ -34,7 +34,8 @@
   ;; required by another module.
 
   (require (submod "error.rkt" error-test)
-	   (submod "block.rkt" block-test)))
+	   (submod "block.rkt" block-test)
+           (submod "vector.rkt" vector-instantiation-test)))
 
 (module+ main
   ;; (Optional) main submodule. Put code here if you need it to be executed when
