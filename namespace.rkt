@@ -6,8 +6,8 @@
            check/raise-code))
 
 ;;Create and export a new namespace corresponding to `namespace-submodule`
-(require 'namespace-submodule racket/runtime-path)
+(require (submod "." namespace-submodule) racket/runtime-path)
 (define-namespace-anchor anchor)
-(define-runtime-module-path-index namespace-submodule 'namespace-submodule)
+(define-runtime-module-path-index namespace-submodule '(submod "." namespace-submodule))
 (define eval-namespace (module->namespace namespace-submodule (namespace-anchor->empty-namespace anchor)))
 (provide eval-namespace)
