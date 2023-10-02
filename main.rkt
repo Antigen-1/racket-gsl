@@ -25,7 +25,8 @@
 
 ;; Code here
 
-
+(require racket/runtime-path)
+(define-runtime-module-path-index namespace "namespace.rkt")
 
 (module+ test
   ;; Any code in this `test` submodule runs when this file is run using DrRacket
@@ -62,7 +63,7 @@
        (let/cc break
          (let loop ()
            (define read-result (read))
-           (define eval-result (if (eof-object? read-result) (break) (eval read-result (module->namespace "namespace.rkt" (namespace-anchor->namespace anchor)))))
+           (define eval-result (if (eof-object? read-result) (break (newline)) (eval read-result (module->namespace namespace (namespace-anchor->namespace anchor)))))
            (println eval-result)
            (loop)))))
     (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))
