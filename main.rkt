@@ -33,7 +33,8 @@
   ;; or with `raco test`. The code here does not run when this file is
   ;; required by another module.
 
-  (require (submod "error.rkt" error-test)))
+  (require (submod "error.rkt" error-test)
+	   (submod "block.rkt" block-test)))
 
 (module+ main
   ;; (Optional) main submodule. Put code here if you need it to be executed when
