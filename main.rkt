@@ -73,12 +73,14 @@
         (call-with-expeditor
          (lambda (read)
            (let/cc break
-             (let loop ()
+             (define (loop . _)
                ;;The REPL will not abort when something is raised.
-               (with-handlers ((exn? (lambda (e) (displayln (exn->string e) $error)))
-                               ((lambda _ #t) (lambda (v) (displayln (format "~a is raised" v) $error))))
-                 (define read-result (read))
-                 (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result namespace)))
-                 (println eval-result $output))
-               (loop))))))
+               (call-with-continuation-prompt
+                (lambda ()
+                  (define read-result (read))
+                  (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result namespace)))
+                  (println eval-result $output))
+                (default-continuation-prompt-tag)
+                loop))
+             (loop)))))
       (lambda () (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))))
