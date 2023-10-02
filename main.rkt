@@ -41,7 +41,10 @@
   ;; does not run when this file is required by another module. Documentation:
   ;; http://docs.racket-lang.org/guide/Module_Syntax.html#%28part._main-and-test%29
 
-  (require racket/cmdline racket/file racket/contract expeditor raco/command-name "namespace.rkt")
+  (require racket/cmdline racket/file racket/contract racket/exn
+           raco/command-name
+           (submod expeditor configure) expeditor
+           "namespace.rkt")
 
   (define history (box #f))
     
@@ -61,12 +64,21 @@
     (dynamic-wind
       void
       (lambda ()
+        ;;You cannot send a break signal to the expeditor through Ctl-C
+        (expeditor-bind-key! "^C" ee-reset-entry)
+        ;;Save output ports
+        (define $output (current-output-port))
+        (define $error (current-error-port))
+        ;;Start the REPL
         (call-with-expeditor
          (lambda (read)
            (let/cc break
              (let loop ()
-               (define read-result (read))
-               (define eval-result (if (eof-object? read-result) (break (newline)) (eval read-result namespace)))
-               (println eval-result)
+               ;;The REPL will not abort when something is raised.
+               (with-handlers ((exn? (lambda (e) (displayln (exn->string e) $error)))
+                               ((lambda _ #t) (lambda (v) (displayln (format "~a is raised" v) $error))))
+                 (define read-result (read))
+                 (define eval-result (if (eof-object? read-result) (break (newline $output)) (eval read-result namespace)))
+                 (println eval-result $output))
                (loop))))))
       (lambda () (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))))
