@@ -43,17 +43,18 @@
   (require racket/cmdline racket/file racket/contract
            raco/command-name
            (submod expeditor configure) expeditor
-           "namespace.rkt")
+           "namespace.rkt" "error.rkt")
 
+  ;;Configuration
+  (void (gsl:turn-off-error-handler))
   (define history (box #f))
-    
   (command-line
     #:program (short-program+command-name)
     #:once-each
     [("--history") location "Read and update the history" (set-box! history location)])
 
+  ;;Read and check the history list
   (define history-list (cond ((unbox history) (file->value (unbox history))) (else null)))
-
   (void (contract (listof string?) history-list (unbox history) 'expeditor))
   
   ;;The main REPL
