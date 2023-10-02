@@ -26,7 +26,7 @@
 ;; Code here
 
 (require racket/runtime-path)
-(define-runtime-module-path-index namespace "namespace.rkt")
+(define-runtime-module-path-index namespace-module "namespace.rkt")
 
 (module+ test
   ;; Any code in this `test` submodule runs when this file is run using DrRacket
@@ -51,19 +51,22 @@
     [("--history") location "Read and update the history" (set-box! history location)])
 
   (define-namespace-anchor anchor)
-  (define history-list (cond ((unbox history) (file->value (unbox history)))
-                             (else null)))
+  (define namespace (module->namespace namespace-module (namespace-anchor->namespace anchor)))
+  (define history-list (cond ((unbox history) (file->value (unbox history))) (else null)))
 
   (void (contract (listof string?) history-list (unbox history) 'expeditor))
   
   ;;The main REPL
   (parameterize ((current-expeditor-history history-list))
-    (call-with-expeditor
-     (lambda (read)
-       (let/cc break
-         (let loop ()
-           (define read-result (read))
-           (define eval-result (if (eof-object? read-result) (break (newline)) (eval read-result (module->namespace namespace (namespace-anchor->namespace anchor)))))
-           (println eval-result)
-           (loop)))))
-    (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))
+    (dynamic-wind
+      void
+      (lambda ()
+        (call-with-expeditor
+         (lambda (read)
+           (let/cc break
+             (let loop ()
+               (define read-result (read))
+               (define eval-result (if (eof-object? read-result) (break (newline)) (eval read-result namespace)))
+               (println eval-result)
+               (loop))))))
+      (lambda () (cond ((unbox history) (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))))))
