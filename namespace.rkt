@@ -3,4 +3,4 @@
 (provide (all-from-out racket/base))
 
 ;;Configuration
-(gsl:turn-off-error-handler)
+(void (gsl:turn-off-error-handler))
