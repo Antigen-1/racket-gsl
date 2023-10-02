@@ -40,11 +40,26 @@
   ;; does not run when this file is required by another module. Documentation:
   ;; http://docs.racket-lang.org/guide/Module_Syntax.html#%28part._main-and-test%29
 
-  (require racket/cmdline)
-  (define who (box "world"))
+  (require racket/cmdline racket/file racket/contract expeditor raco/command-name "namespace.rkt")
+
+  (define history (box #f))
+    
   (command-line
-    #:program "my-program"
+    #:program (short-program+command-name)
     #:once-each
-    [("-n" "--name") name "Who to say hello to" (set-box! who name)]
-    #:args ()
-    (printf "hello ~a~n" (unbox who))))
+    [("--history") location "Read and update the history" (set-box! history location)])
+
+  (define-namespace-anchor anchor)
+  (define history-list (cond ((unbox history) (file->value (unbox history)))
+                             (else null)))
+
+  (contract history-list (listof string?) (unbox history) 'expeditor)
+  
+  ;;The main REPL
+  (parameterize ((current-expeditor-history history-list))
+    (call-with-expeditor
+     (lambda (read)
+       (let loop ()
+         (print (eval (read) (module->namespace "namespace.rkt" (namespace-anchor->namespace anchor))))
+         (loop))))
+    (write-to-file (current-expeditor-history) (unbox history) #:exists 'truncate/replace)))
