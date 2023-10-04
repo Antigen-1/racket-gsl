@@ -1,6 +1,6 @@
 #lang racket/base
 (require "library.rkt" ffi/unsafe)
-(provide (rename-out (gsl_set_error_handler_off gsl:turn-off-error-handler)) check/raise-code)
+(provide (rename-out (gsl_set_error_handler_off gsl:turn-off-error-handler)) check/raise-code exn:fail:gsl?)
 
 (struct exn:fail:gsl exn:fail ())
 

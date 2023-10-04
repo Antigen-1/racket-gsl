@@ -28,7 +28,19 @@
 
   ;;Other utilities
   (vector->gsl-vector (:-> (vectorof double-flonum?) any))
-  (gsl-vector->vector (:-> gsl_vector? any))))
+  (gsl-vector->vector (:-> gsl_vector? any)))
+ (rename-out (gsl_vector_memcpy gsl:vector-copy!)
+             (gsl_vector_swap gsl:vector-swap!)
+             (gsl_vector_swap_elements gsl:vector-swap-elements!)
+             (gsl_vector_reverse gsl:vector-reverse!)
+             (gsl_vector_add gsl:vector-add!)
+             (gsl_vector_mul gsl:vector-mul!)
+             (gsl_vector_sub gsl:vector-sub!)
+             (gsl_vector_div gsl:vector-div!)
+             (gsl_vector_scale gsl:vector-scale!)
+             (gsl_vector_add_constant gsl:vector-add-constant!)
+             (gsl_vector_sum gsl:vector-sum)
+             (gsl_vector_axpby gsl:vector-ax+by!)))
 
 ;;The C structure
 (define-cstruct _gsl_vector
@@ -75,8 +87,8 @@
 
 ;;Vector readers, writers and view functions are not bound here
 
-(module* vector-instantiation-test racket/base
-  (require rackunit (submod "..") racket/vector)
+(module+ vector-test
+  (require rackunit (submod "..") racket/vector racket/flonum)
 
   (define num 100)
 
@@ -89,3 +101,85 @@
   (check-equal? (vector-append (vector 1.0) (make-vector (sub1 num) 0.0)) (gsl-vector->vector gvec))
   (gsl:vector-set-zero! gvec)
   (check-equal? (make-vector num 0.0) (gsl-vector->vector gvec)))
+
+;;Copying vectors
+(define-libgsl gsl_vector_memcpy (_fun _gsl_vector-pointer _gsl_vector-pointer
+                                      -> (r : _int)
+                                      -> (check/raise-code r)))
+(define-libgsl gsl_vector_swap (_fun _gsl_vector-pointer _gsl_vector-pointer
+                                     -> (r : _int)
+                                     -> (check/raise-code r)))
+
+;;Exchanging elements
+(define-libgsl gsl_vector_swap_elements (_fun _gsl_vector-pointer _size _size
+                                              -> (r : _int)
+                                              -> (check/raise-code r)))
+(define-libgsl gsl_vector_reverse (_fun _gsl_vector-pointer -> (r : _int) -> (check/raise-code r)))
+
+;;Vector operations
+;;A <- (op A B)
+(define vector-operator-type (_fun _gsl_vector-pointer _gsl_vector-pointer
+                                   -> (r : _int)
+                                   -> (check/raise-code r)))
+(define-libgsl gsl_vector_add vector-operator-type)
+(define-libgsl gsl_vector_sub vector-operator-type)
+(define-libgsl gsl_vector_mul vector-operator-type)
+(define-libgsl gsl_vector_div vector-operator-type)
+;;A <- (op A b)
+(define scalar-operator-type (_fun _gsl_vector-pointer _double
+                                   -> (r : _int)
+                                   -> (check/raise-code r)))
+(define-libgsl gsl_vector_scale scalar-operator-type)
+(define-libgsl gsl_vector_add_constant scalar-operator-type)
+;;op : (-> A b)
+(define-libgsl gsl_vector_sum (_fun _gsl_vector-pointer -> _double))
+;;Y <- (op a X b Y)
+(define-libgsl gsl_vector_axpby (_fun _double _gsl_vector-pointer _double _gsl_vector-pointer
+                                      -> (r : _int)
+                                      -> (check/raise-code r)))
+
+(module+ vector-test
+  (define num1 10)
+  (define lst (build-list num1 (lambda (_) (random))))
+  (define vec1 (list->vector lst))
+  (define vec2 (list->vector (reverse lst)))
+  (define vec3 (vector-copy vec1))
+  (define gvec1 (vector->gsl-vector vec1))
+  (define gvec2 (gsl:alloc-vector num1))
+  (gsl:vector-copy! gvec2 gvec1)
+  (check-true (equal? vec1 (gsl-vector->vector gvec2)))
+  (gsl:vector-reverse! gvec2)
+  (check-true (equal? vec2 (gsl-vector->vector gvec2)))
+  (gsl:vector-swap! gvec2 gvec1)
+  (check-true (equal? vec1 (gsl-vector->vector gvec2)))
+  (check-true (equal? vec2 (gsl-vector->vector gvec1)))
+  (gsl:vector-swap-elements! gvec2 0 (sub1 num1))
+  (let ((first (vector-ref vec3 0))
+        (last (vector-ref vec3 (sub1 num1))))
+    (vector-set! vec3 0 last)
+    (vector-set! vec3 (sub1 num1) first))
+  (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+  (void (vector-map! (lambda (n) (fl* n 2.0)) vec3))
+  (gsl:vector-scale! gvec2 2.0)
+  (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+  (void (vector-map! (lambda (n) (fl+ n 1.0)) vec3))
+  (gsl:vector-add-constant! gvec2 1.0)
+  (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+  (void (vector-map! (lambda (n) (fl+ n 1.0)) vec3))
+  (gsl:vector-add! gvec2 (vector->gsl-vector (make-vector num1 1.0)))
+  (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+  (void (vector-map! (lambda (n) (fl* n 2.0)) vec3))
+  (gsl:vector-mul! gvec2 (vector->gsl-vector (make-vector num1 2.0)))
+  (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+  (void (vector-map! (lambda (n) (fl/ n 2.0)) vec3))
+  (gsl:vector-div! gvec2 (vector->gsl-vector (make-vector num1 2.0)))
+  (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+  (void (vector-map! (lambda (n) (fl- n 2.0)) vec3))
+  (gsl:vector-sub! gvec2 (vector->gsl-vector (make-vector num1 2.0)))
+  (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+  (check-true (= (for/fold ((s 0.0)) ((fl (in-vector vec3)))
+                   (fl+ s fl))
+                 (gsl:vector-sum gvec2)))
+  (gsl:vector-ax+by! 1.0 (vector->gsl-vector vec2) 2.0 gvec1)
+  (check-true (equal? (vector-map (lambda (n) (fl* n 3.0)) vec2)
+                      (gsl-vector->vector gvec1))))

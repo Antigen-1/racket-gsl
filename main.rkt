@@ -32,7 +32,7 @@
 
   (require (submod "error.rkt" error-test)
 	   (submod "block.rkt" block-test)
-           (submod "vector.rkt" vector-instantiation-test)))
+           (submod "vector.rkt" vector-test)))
 
 (module+ main
   ;; (Optional) main submodule. Put code here if you need it to be executed when
