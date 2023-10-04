@@ -40,7 +40,18 @@
              (gsl_vector_scale gsl:vector-scale!)
              (gsl_vector_add_constant gsl:vector-add-constant!)
              (gsl_vector_sum gsl:vector-sum)
-             (gsl_vector_axpby gsl:vector-ax+by!)))
+             (gsl_vector_axpby gsl:vector-ax+by!)
+             (gsl_vector_max gsl:vector-max)
+             (gsl_vector_min gsl:vector-min)
+             (gsl_vector_minmax gsl:vector-minmax)
+             (gsl_vector_max_index gsl:vector-max-index)
+             (gsl_vector_min_index gsl:vector-min-index)
+             (gsl_vector_minmax_index gsl:vector-minmax-index)
+             (gsl_vector_isnull gsl:vector-null?)
+             (gsl_vector_ispos gsl:vector-pos?)
+             (gsl_vector_isneg gsl:vector-neg?)
+             (gsl_vector_isnonneg gsl:vector-nonneg?)
+             (gsl_vector_equal gsl:vector=?)))
 
 ;;The C structure
 (define-cstruct _gsl_vector
@@ -140,12 +151,14 @@
 
 (module+ vector-test
   (define num1 10)
+
   (define lst (build-list num1 (lambda (_) (random))))
   (define vec1 (list->vector lst))
   (define vec2 (list->vector (reverse lst)))
   (define vec3 (vector-copy vec1))
   (define gvec1 (vector->gsl-vector vec1))
   (define gvec2 (gsl:alloc-vector num1))
+
   (gsl:vector-copy! gvec2 gvec1)
   (check-true (equal? vec1 (gsl-vector->vector gvec2)))
   (gsl:vector-reverse! gvec2)
@@ -159,6 +172,7 @@
     (vector-set! vec3 0 last)
     (vector-set! vec3 (sub1 num1) first))
   (check-true (equal? vec3 (gsl-vector->vector gvec2)))
+
   (void (vector-map! (lambda (n) (fl* n 2.0)) vec3))
   (gsl:vector-scale! gvec2 2.0)
   (check-true (equal? vec3 (gsl-vector->vector gvec2)))
@@ -183,3 +197,48 @@
   (gsl:vector-ax+by! 1.0 (vector->gsl-vector vec2) 2.0 gvec1)
   (check-true (equal? (vector-map (lambda (n) (fl* n 3.0)) vec2)
                       (gsl-vector->vector gvec1))))
+
+;;Finding maximum and minimum elements of vectors
+(define-libgsl gsl_vector_max (_fun _gsl_vector-pointer -> _double))
+(define-libgsl gsl_vector_min (_fun _gsl_vector-pointer -> _double))
+(define-libgsl gsl_vector_minmax (_fun _gsl_vector-pointer (min : (_ptr o _double)) (max : (_ptr o _double))
+                                       -> _void
+                                       -> (values min max)))
+(define-libgsl gsl_vector_max_index (_fun _gsl_vector-pointer -> _size))
+(define-libgsl gsl_vector_min_index (_fun _gsl_vector-pointer -> _size))
+(define-libgsl gsl_vector_minmax_index (_fun _gsl_vector-pointer (max : (_ptr o _size)) (min : (_ptr o _size))
+                                             -> _void -> (values max min)))
+
+;;Vector properties
+(define predicate-type (_fun _gsl_vector-pointer -> _bool))
+(define-libgsl gsl_vector_isnull predicate-type)
+(define-libgsl gsl_vector_ispos predicate-type)
+(define-libgsl gsl_vector_isneg predicate-type)
+(define-libgsl gsl_vector_isnonneg predicate-type)
+(define-libgsl gsl_vector_equal (_fun _gsl_vector-pointer _gsl_vector-pointer -> _bool))
+
+(module+ vector-test
+  (define num2 10)
+
+  (define vec4 (build-vector num2 (lambda (_) (random))))
+  (define gvec3 (vector->gsl-vector vec4))
+
+  (define (check-=? a b)
+    (check-true (= a b)))
+
+  (check-=? (vector-argmax values vec4)
+            (gsl:vector-max gvec3))
+  (check-=? (vector-argmin values vec4)
+            (gsl:vector-min gvec3))
+  (let-values (((min max) (gsl:vector-minmax gvec3)))
+    (check-=? min (vector-argmin values vec4))
+    (check-=? max (vector-argmax values vec4)))
+  (let-values (((min max) (gsl:vector-minmax-index gvec3)))
+    (check-=? min (vector-memq (vector-argmin values vec4) vec4))
+    (check-=? max (vector-memq (vector-argmax values vec4) vec4)))
+
+  (check-true (gsl:vector-null? (vector->gsl-vector (make-vector num2 0.0))))
+  (check-true (gsl:vector-pos? (vector->gsl-vector (make-vector num2 1.0))))
+  (check-true (gsl:vector-nonneg? gvec3))
+  (check-true (gsl:vector-neg? (vector->gsl-vector (make-vector num2 -1.0))))
+  (check-true (gsl:vector=? gvec3 (vector->gsl-vector vec4))))
